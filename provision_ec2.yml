@@ -1,6 +1,7 @@
 ---
 - name: Provision EC2 Instance
   hosts: localhost
+  connection: local
   gather_facts: false
   vars:
     instance_count: 2
