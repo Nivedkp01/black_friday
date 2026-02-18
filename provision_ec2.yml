@@ -17,7 +17,7 @@
         instance_type: "{{instance_type}}"
         image_id: "{{ami_id}}"
         region: "{{region}}"
-        vpc_subnet_id: "subnet-020b05d7091ecb7ea"
+        vpc_subnet_id: "subnet-016c0eff1f1e1f785"
         wait: yes
       loop: "{{ range(1, instance_count + 1) | list }}"
       register: ec2_instance
