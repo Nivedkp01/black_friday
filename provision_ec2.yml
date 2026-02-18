@@ -1,0 +1,49 @@
+---
+- name: Provision EC2 Instance
+  hosts: localhost
+  gather_facts: false
+  vars:
+    instance_count: 2
+    region: "us-east-1"
+    ami_id: "ami-0b6c6ebed2801a5cb"
+    instance_type: "t2.micro"
+  tasks:
+    - name: Launch EC2 instance
+      amazon.aws.ec2_instance:
+        name: "my-ec2-instance-{{item}}"
+        key_name: "ansible-key"
+        instance_type: "{{instance_type}}"
+        image_id: "{{ami_id}}"
+        region: "{{region}}"
+        wait: yes
+      loop: "{{ range(1, instance_count + 1) | list }}"
+      register: ec2_instance
+    
+    - name: Add new instance to host group
+      add_host:
+        name: "{{ item.public_ip }}"
+        groups: "new-serverrs"
+      loop: "{{ ec2_instance.instances }}"
+    
+    - name: Configure new serverrs
+      hosts: new-serverrs
+      gather_facts: false
+      become: yes
+      tasks:
+        - name: Wait for SSH to be available
+          wait_for:
+            host: "{{ inventory_hostname }}"
+            port: 22
+            delay: 10
+            timeout: 300
+        
+        - name: Install Apache
+          ansible.builtin.yum:
+            name: httpd
+            state: present
+        
+        - name: Start Apache service
+          ansible.builtin.service:
+            name: httpd
+            state: started
+
