@@ -49,7 +49,6 @@
 - name: Configure new servers
   hosts: new_servers
   gather_facts: false
-  become: yes
   tasks:
     - name: Wait for connection
       ansible.builtin.wait_for_connection:
