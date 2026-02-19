@@ -6,7 +6,7 @@
   vars:
     instance_count: 2
     region: "us-east-1"
-    ami_id: "ami-0440d3b780d96b29d"
+    ami_id: "ami-0440d3b780d96b29d" # Amazon Linux 2023
     instance_type: "t3.micro"
   
   tasks:
@@ -23,7 +23,7 @@
           - proto: tcp            
             from_port: 80
             to_port: 80
-            cidr_ip:  0.0.0.0/0
+            cidr_ip: 0.0.0.0/0
       register: sg_result
 
     - name: Launch EC2 instance
@@ -41,26 +41,38 @@
     
     - name: Add new instance to host group
       add_host:
-        hostname: "{{ item.public_ip_address }}" # Note: changed 'public_ip' to 'public_ip_address'
+        hostname: "{{ item.public_ip_address }}"
         groups: "new_servers"
-      loop: "{{ ec2_results.instances | default(ec2_instance.results | map(attribute='instances') | flatten) }}"
+      loop: "{{ ec2_instance.results | map(attribute='instances') | flatten }}"
 
-# --- SECOND PLAY STARTS HERE (No indentation) ---
+# --- SECOND PLAY: CONFIGURATION ---
 - name: Configure new servers
   hosts: new_servers
-  gather_facts: false
+  gather_facts: yes
+  # Note: Do not put 'become: yes' at this top level 
+  # to avoid the "sudo not found" error during the initial handshake.
+
   tasks:
     - name: Wait for connection
       ansible.builtin.wait_for_connection:
-        delay: 5
+        delay: 10
         timeout: 300
-        
-    - name: Install Apache
-      ansible.builtin.apt:
-        name: apache2
+
+    - name: Install Apache (HTTPD for Amazon Linux)
+      ansible.builtin.yum:
+        name: httpd
         state: present
-        
+      become: yes # Only become root for the actual install
+
     - name: Start Apache service
       ansible.builtin.service:
-        name: apache2
+        name: httpd
         state: started
+        enabled: yes
+      become: yes
+
+    - name: Create a basic Black Friday Landing Page
+      ansible.builtin.copy:
+        content: "<h1>Black Friday is Live!</h1><p>Server: {{ ansible_hostname }}</p>"
+        dest: /var/www/html/index.html
+      become: yes
