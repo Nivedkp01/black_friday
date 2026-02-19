@@ -57,6 +57,11 @@
       ansible.builtin.wait_for_connection:
         delay: 10
         timeout: 300
+    - name: Force Install Sudo and Python (Bootstrap)
+      # This sends a direct command as the 'ec2-user' or 'ubuntu' user
+      ansible.builtin.raw: |
+        (command -v sudo >/dev/null 2>&1) || (yum install -y sudo || apt-get update && apt-get install -y sudo)
+      changed_when: true
 
     - name: Install Apache (HTTPD for Amazon Linux)
       ansible.builtin.yum:
